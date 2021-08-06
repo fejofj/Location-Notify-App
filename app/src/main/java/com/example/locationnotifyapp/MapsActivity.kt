@@ -1,6 +1,8 @@
 package com.example.locationnotifyapp
 
 import android.Manifest
+import android.content.Context
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.Location
@@ -38,8 +40,10 @@ private  var radius : Double = 0.0
 private lateinit var bottomSheetDialog: BottomSheetDialog
 private lateinit var view:View
     private lateinit var info :Any
+    private lateinit var p0:LatLng
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
     info =   Snackbar.make(findViewById(android.R.id.content), "Long press on the location to add marker", Snackbar.LENGTH_INDEFINITE).show()
 bottomSheetDialog= BottomSheetDialog(this)
 
@@ -84,6 +88,29 @@ textToSpeech=TextToSpeech(this,this)
         mapFragment.getMapAsync(this)
     }
 
+    private fun loadData() {
+
+        val sharedPref:SharedPreferences=getSharedPreferences("sharedPref",Context.MODE_PRIVATE)
+        val savedRad:Int = sharedPref.getInt("radius",0)
+        val savedlocation:String? = sharedPref.getString("location",null)
+        radius=savedRad.toDouble()
+        val savedlat = sharedPref.getString("LOCATION_LAT",null)
+       val savedlon = sharedPref.getString("LOCATION_LON",null)
+        if (savedlat != null && savedlon != null && radius!=null) {
+
+                p0= LatLng(savedlat.toDouble(),savedlon.toDouble())
+            latLng=p0
+
+            mMap.addMarker(MarkerOptions().position(p0))
+            mMap.addCircle(CircleOptions().center(p0).radius(radius).strokeColor(Color.GREEN).fillColor(Color.CYAN))
+
+            checkIsInOut()
+        }
+
+
+
+    }
+
     private fun speakOut(text: String) {
         textToSpeech.speak(text,TextToSpeech.QUEUE_FLUSH,null,"")
 
@@ -97,6 +124,7 @@ mMap.setOnMapLongClickListener(this)
         mMap.uiSettings.isZoomControlsEnabled=true
 
         setUpMap()
+        loadData()
       // checkIsInOut()
 
     }
@@ -128,7 +156,10 @@ mMap.setOnMapLongClickListener(this)
 
 
             }
+
+
         }
+
     }
 
     private fun checkIsInOut() {
@@ -200,7 +231,15 @@ mMap.setOnMapLongClickListener(this)
 
             radius = bar.progress.toDouble()
 
-            mMap.addCircle(CircleOptions().center(p0).radius(radius).strokeColor(Color.GREEN).fillColor(Color.CYAN))
+            val circle=mMap.addCircle(CircleOptions().center(p0).radius(radius).strokeColor(Color.GREEN).fillColor(Color.CYAN))
+
+            val sharePref = getSharedPreferences("sharedPref",Context.MODE_PRIVATE)
+            val editor=sharePref.edit()
+            editor.apply{
+                putInt("radius",radius.toInt())
+                putString("LOCATION_LAT", p0.latitude.toString())
+                putString("LOCATION_LON", p0.longitude.toString())
+            }.apply()
             bottomSheetDialog.dismiss()
             latLng=p0
             checkIsInOut()
